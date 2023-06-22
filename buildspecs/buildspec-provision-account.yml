@@ -1,0 +1,27 @@
+version: "0.2"
+phases: 
+  install:
+    runtime-versions: 
+      nodejs: 16
+      docker: 20
+    commands:
+      - echo "Installing AWS CLI"
+      - rm -rf /root/.pyenv/shims/aws*
+      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip awscliv2.zip
+      - sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+      - alias aws=/usr/local/bin/aws
+      - aws --version
+      - which aws
+      - /usr/local/bin/aws --version
+      - npm install -g aws-cdk
+      - npm install -g esbuild
+      - npm i
+  build:
+    commands:
+      - chmod -R +x ./scripts
+      - npm run pullenv
+      - . ./scripts/cross-account.sh Connect
+      - cdk bootstrap
+      # - aws support create-case --subject "Account verification" --service-code customer-account --severity-code high --communication-body "I get the following message esource handler returned message Access denied for operation 'AWS::CloudFront::Distribution Your account must be verified before you can add new CloudFront resources. To verify your account, please contact AWS Support"
+      - if [ $? -ne 0 ]; then echo "Build failed"; exit 1; fi

@@ -1,0 +1,36 @@
+version: "0.2"
+phases: 
+  install:
+    runtime-versions: 
+      nodejs: 16
+      docker: 20
+    commands:
+      # Installing the latest aws cli version
+      - echo "Installing AWS CLI"
+      - rm -rf /root/.pyenv/shims/aws*
+      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      - unzip awscliv2.zip
+      - sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
+      - alias aws=/usr/local/bin/aws
+
+      # This appears to be installed as part of the runtime, which causes issues with the installed
+      # aws cli
+      - /usr/local/bin/aws --version
+
+      # Installing aws-cdk globally
+      - npm install -g aws-cdk
+
+      # Adding esbuild to eliminate having to use docker to build the lambda code
+      - npm install -g esbuild
+      - npm i
+
+  build:
+    commands:
+      # This line is due to everything being in the same repo/project
+      - echo "export const CURRENT_BRANCH = '$CURRENT_BRANCH';" > ./src/product/website/src/current-branch.tsx
+      - chmod -R +x ./scripts
+      - . ./scripts/cross-account.sh Connect
+      - cd ./src/product/website
+      - npm i
+      - npm run build
+      - cdk deploy --require-approval never --no-execute
